@@ -118,6 +118,7 @@ bld/
 *.vssscc
 .builds
 *.pidb
+*.cache
 *.svclog
 *.scc
 
