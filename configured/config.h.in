@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+#define DEFAULT_LOG_FILE "events.log"
+#define MONITOR_INTERVAL 5 // In seconds
+// This code stores the version
+
 static const char * const project_name = "@PROJECT_NAME@";
 static const char * const project_version = "@PROJECT_VERSION@";
 static const int32_t project_version_major =  @PROJECT_VERSION_MAJOR@;

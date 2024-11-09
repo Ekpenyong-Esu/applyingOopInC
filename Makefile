@@ -16,6 +16,20 @@ install_doc: install_min
 	sudo apt-get install doxygen
 	pip install jinja2 Pygments
 
+dependency:
+	cd build && cmake .. --graphviz=graph.dot && dot -Tpng graph.dot -o graphImage.png
+
+doxyfile:
+	doxygen -g
+
+doxyhtml:
+	cd docs && doxygen
+
 prepare:
 	rm -rf build
 	mkdir build
+
+precommit:
+	sudo apt install pre-commit -y
+	pre-commit install
+	pre-commit install-hooks

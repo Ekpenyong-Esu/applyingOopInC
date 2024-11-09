@@ -1,56 +1,78 @@
+#include "config.h"
+#include "monitor.h"
+#include <log.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-#include <argparse.h>
-#include <log.h>
 
-#include "config.h"
+/**
+ * @brief I am truing to understand how i can integrate cmake into my project
+ *
+ * @param argc
+ * @param argv
+ * @return
+ */
 
-static const char *const usages[] = {
-    "basic [options] [[--] args]",
-    "basic [options]",
-    NULL,
-};
 
-int main(int argc, const char **argv)
+static struct monitor file_monitor;
+static int running = 1;
+
+void handle_signal(int sig)
 {
+    if (sig == SIGINT || sig == SIGTERM)
+    {
+        printf("\nShutting down...\n");
+        monitor_stop(&file_monitor);
+        running = 0;
+    }
+}
+
+int main(int argc, char *argv[])
+{
+
     log_info("Welcome to %s v%s\n", project_name, project_version);
 
-    int i = 0;
-
-    int verbose = 0;
-    const char *path = NULL;
-    struct argparse_option options[] = {
-        OPT_HELP(),
-        OPT_GROUP("Program options"),
-        OPT_BOOLEAN('v', "verbose", &verbose, "To enable verbose output"),
-        OPT_STRING('f', "filename", &path, "Json Filepath"),
-        OPT_END(),
-    };
-
-    struct argparse argparse;
-    argparse_init(&argparse, options, usages, 0);
-    argparse_describe(&argparse, "\nA brief description.", NULL);
-    (void)argparse_parse(&argparse, argc, argv);
-    if (verbose != 0)
+    if (argc < 2)
     {
-        printf("verbose: %d\n", verbose);
-    }
-    if (path != NULL)
-    {
-        printf("path: %s\n", path);
-    }
-    else
-    {
-        return -1;
+        fprintf(stderr, "Usage: %s <directory>\n", argv[0]);
+        return EXIT_FAILURE;
     }
 
-    FILE *fp = fopen(path, "w");
+    const char *directory = argv[1];
 
-    if (!fp)
+    // Initialize monitor
+    if (monitor_init(&file_monitor, directory) != 0)
     {
-        return -1;
+        fprintf(stderr, "Failed to initialize monitor for directory: %s\n", directory);
+
+        return EXIT_FAILURE;
     }
 
-    return 0;
+    // Set up signal handler for graceful shutdown
+    signal(SIGINT, handle_signal);
+    signal(SIGTERM, handle_signal);
+
+    // Start monitoring
+    printf("Monitoring directory: %s\n", directory);
+    if (monitor_start(&file_monitor) != 0)
+    {
+        fprintf(stderr, "Error starting file monitor.\n");
+        monitor_deinit(&file_monitor);
+        return EXIT_FAILURE;
+    }
+
+    // Wait for shutdown signal
+    while (running)
+    {
+        sleep(1);
+    }
+
+    // Cleanup
+    monitor_deinit(&file_monitor);
+    printf("File System Monitor stopped.\n");
+
+    return EXIT_SUCCESS;
 }
